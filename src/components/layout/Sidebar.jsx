@@ -20,6 +20,7 @@ import {
   Server,
   FileText,
   ChevronDown,
+  ChevronRight,
   ExternalLink,
   Zap,
   BarChart2,
@@ -46,11 +47,6 @@ const NAV_ITEMS = [
           { label: 'Sales Today New', href: '../Sales-today-new' },
           { label: 'Sales Yesterday', href: '../sales-yesterday' },
           { label: 'Sales Per Jam Per Bulan', href: '../Sales-Perjam-Perbulan' },
-        ],
-      },
-      {
-        header: 'Evaluasi Sales',
-        items: [
           { label: 'Evaluasi Sales', href: '../evaluasi-sales' },
           { label: 'Evaluasi Sales Promo', href: '../evaluasi-sales-promo' },
           { label: 'Evaluasi Sales Diluar Item Larangan', href: '../evaluasi-sales-nonpromo' },
@@ -71,13 +67,6 @@ const NAV_ITEMS = [
         ],
       },
       {
-        header: 'Mitra & I-Saku',
-        items: [
-          { label: 'Monitoring Top Up Mitra IGR', href: '../mitra-topup' },
-          { label: 'Monitoring Top Up Mitra IGR MB', href: '../mitra-topup-MB' },
-        ],
-      },
-      {
         header: 'Member',
         items: [
           { label: 'Master Member', href: '../Master-Member' },
@@ -89,24 +78,12 @@ const NAV_ITEMS = [
         ],
       },
       {
-        header: 'Produk',
-        items: [{ label: 'History Transaksi Produk', href: '../trans-kasir' }],
-      },
-      {
         header: 'Hadiah',
         items: [
           { label: 'History Gift', href: '../history-gift-ms' },
           { label: 'Monitoring Gift', href: '../monitoring_gift' },
           { label: 'Monitoring Hadiah', href: '../hdh' },
         ],
-      },
-      {
-        header: 'Cashback',
-        items: [{ label: 'Monitoring Cashback', href: '../CB' }],
-      },
-      {
-        header: 'Barkos',
-        items: [{ label: 'Barang Kosong', href: '../Barkos' }],
       },
       {
         header: 'Problem',
@@ -214,8 +191,8 @@ const NAV_ITEMS = [
     ],
   },
   {
-    id: 'program-ho',
-    label: 'Program HO',
+    id: 'program',
+    label: 'Program',
     icon: Settings,
     sections: [
       {
@@ -226,16 +203,17 @@ const NAV_ITEMS = [
         ],
       },
       {
-        header: 'TSM dan ESS',
+        header: 'TSM',
         items: [
-          { label: 'ESS 1', href: 'http://ess1.indomaret.lan/ess/homeportal', external: true },
-          { label: 'ESS 2', href: 'http://ess2.indomaret.lan/ess/homeportal', external: true },
           { label: 'TSM', href: 'http://172.20.30.6/tsm/Login.aspx', external: true },
         ],
       },
       {
-        header: 'Mitra',
-        items: [{ label: 'VARIF MITRA', href: 'https://mitraindogrosir.co.id/cms/login', external: true }],
+        header: 'ISReport',
+        items: [
+          { label: 'ISReport SPI 2P', href: 'http://172.26.15.2:8080/spibdg2p/isreport/', external: true },
+          { label: 'ISReport SPI 1Y', href: 'http://192.168.152.2:8080/spibdg5/isreport/', external: true },
+        ],
       },
       {
         header: 'EDP / IT',
@@ -287,58 +265,66 @@ const QUICK_LINKS = [
 // Sub-komponen: NavAccordion
 // ─────────────────────────────────────────────────────────────────────────────
 
-function NavAccordion({ item, isOpen, onToggle }) {
+function NavFlyout({ item, isOpen, onToggle }) {
   const Icon = item.icon;
 
   return (
-    <div>
-      {/* ── Tombol toggle menu utama ── */}
+    <div className="relative">
+      {/* ── Tombol trigger utama ── */}
       <button
         onClick={onToggle}
         className={`
           relative w-full flex items-center justify-between
           px-4 py-3 text-[15px] font-semibold
           transition-colors duration-150 select-none
-          ${isOpen
-            /* AKTIF: garis merah kiri tebal + bg merah muda + teks merah */
-            ? 'bg-red-50 text-red-700'
-            /* IDLE: teks abu gelap, hover bg abu sangat muda */
-            : 'text-slate-700 hover:bg-gray-100 hover:text-slate-900'
-          }
+          text-slate-700 hover:bg-gray-100 hover:text-slate-900
+          ${isOpen ? 'bg-red-50 text-red-700' : ''}
         `}
       >
-        {/* Garis vertikal merah tebal untuk indikator aktif */}
-        {isOpen && (
-          <span className="absolute left-0 top-0 h-full w-[3px] rounded-r bg-red-600" />
-        )}
+        <span className={`
+          absolute left-0 top-0 h-full w-[3px] rounded-r bg-red-600 transition-opacity
+          opacity-0 
+          ${isOpen ? 'opacity-100' : ''}
+        `} />
 
         <span className="flex items-center gap-3">
           <Icon
             size={20}
-            className={isOpen ? 'text-red-600' : 'text-slate-400'}
+            className={`
+              transition-colors text-slate-400
+              ${isOpen ? 'text-red-600' : ''}
+            `}
           />
           {item.label}
         </span>
 
-        <ChevronDown
+        {/* Menggunakan ChevronRight untuk indikator menu flyout */}
+        <ChevronRight
           size={16}
           className={`
             transition-transform duration-200 flex-shrink-0
-            ${isOpen ? 'rotate-180 text-red-500' : 'text-slate-400'}
+            text-slate-400
+            ${isOpen ? 'rotate-90 text-red-500' : ''}
           `}
         />
       </button>
 
-      {/* ── Panel sub-menu ── */}
-      {isOpen && (
-        <div className="bg-gray-50 border-b border-gray-100">
+      {/* ── Panel Sub-menu ── */}
+      <div className={`
+        ${isOpen ? 'block' : 'hidden'}
+        bg-gray-50 border-b border-gray-100
+        
+        lg:absolute lg:left-full lg:-top-2 lg:ml-1 lg:w-72
+        lg:bg-white lg:border lg:border-gray-200 lg:shadow-2xl lg:rounded-xl lg:z-[100]
+        lg:max-h-[85vh] lg:overflow-y-auto scrollbar-thin
+      `}>
+        <div className="py-2">
           {item.sections.map((section) => (
-            <div key={section.header} className="px-4 pt-3 pb-2">
-              {/* Section header — uppercase label seperti dropdown-header aslinya */}
-              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            <div key={section.header} className="px-4 py-2">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
                 {section.header}
               </p>
-              <ul className="space-y-0.5">
+              <ul className="space-y-1">
                 {section.items.map((link) => (
                   <li key={link.label}>
                     <a
@@ -346,18 +332,18 @@ function NavAccordion({ item, isOpen, onToggle }) {
                       target={link.external ? '_blank' : undefined}
                       rel={link.external ? 'noopener noreferrer' : undefined}
                       className="
-                        group flex items-center justify-between
-                        px-3 py-2 rounded-md
-                        text-[13px] text-slate-600
+                        group/link flex items-center justify-between
+                        px-3 py-2 rounded-lg
+                        text-[13px] font-medium text-slate-600
                         hover:bg-red-50 hover:text-red-700
-                        transition-colors duration-100
+                        transition-colors duration-150
                       "
                     >
                       <span className="leading-snug">{link.label}</span>
                       {link.external && (
                         <ExternalLink
-                          size={11}
-                          className="flex-shrink-0 ml-2 opacity-0 group-hover:opacity-50 transition-opacity"
+                          size={12}
+                          className="flex-shrink-0 ml-2 opacity-0 group-hover/link:opacity-50 transition-opacity"
                         />
                       )}
                     </a>
@@ -367,7 +353,7 @@ function NavAccordion({ item, isOpen, onToggle }) {
             </div>
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -404,8 +390,8 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* ── Navigasi (scrollable) ─────────────────────────── */}
-      <nav className="flex-1 overflow-y-auto scrollbar-thin">
+      {/* ── Navigasi ─────────────────────────── */}
+      <nav className="flex-1 overflow-visible relative">
         <p className="px-5 pt-5 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
           Menu Utama
         </p>
@@ -414,7 +400,7 @@ export default function Sidebar() {
         <div className="border-t border-gray-100" />
 
         {NAV_ITEMS.map((item) => (
-          <NavAccordion
+          <NavFlyout
             key={item.id}
             item={item}
             isOpen={openMenu === item.id}

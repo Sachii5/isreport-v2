@@ -76,9 +76,9 @@ export default function DashboardLayout({ children }) {
       <div
         className={`
           hidden lg:block
-          flex-shrink-0 overflow-hidden
+          flex-shrink-0
           transition-all duration-300 ease-in-out
-          ${sidebarOpen ? 'w-64' : 'w-0'}
+          ${sidebarOpen ? 'w-64 overflow-visible' : 'w-0 overflow-hidden'}
         `}
       >
         <Sidebar />
