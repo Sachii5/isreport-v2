@@ -13,6 +13,8 @@
  */
 
 import { useState } from 'react';
+// ... rest of imports
+import { Link } from 'react-router-dom';
 import {
   Store,
   Settings,
@@ -38,20 +40,14 @@ const NAV_ITEMS = [
     sections: [
       {
         header: 'Produk',
-        items: [{ label: 'Informasi Produk', href: '../my-inq' }],
+        items: [{ label: 'Informasi Produk', href: '/informasi-produk' }],
       },
       {
         header: 'Sales',
         items: [
           { label: 'Sales Today', href: '../sales-today' },
-          { label: 'Sales Today New', href: '../Sales-today-new' },
-          { label: 'Sales Yesterday', href: '../sales-yesterday' },
-          { label: 'Sales Per Jam Per Bulan', href: '../Sales-Perjam-Perbulan' },
           { label: 'Evaluasi Sales', href: '../evaluasi-sales' },
           { label: 'Evaluasi Sales Promo', href: '../evaluasi-sales-promo' },
-          { label: 'Evaluasi Sales Diluar Item Larangan', href: '../evaluasi-sales-nonpromo' },
-          { label: 'Evaluasi IGR ke OMI', href: '../evaluasi-sales-igr-ke-omi' },
-          { label: 'Evaluasi Sales Per Bulan', href: '../evaluasi-sales-per-bulan' },
           { label: 'Evaluasi Sales by MR', href: '../mr' },
         ],
       },
@@ -59,9 +55,7 @@ const NAV_ITEMS = [
         header: 'Kasir',
         items: [
           { label: 'Item Distribusi', href: '../item-distribusi' },
-          { label: 'Prime Bread Today', href: '../prime-bread' },
           { label: 'Monitoring Checker', href: '../monit-checker' },
-          { label: 'Struk Item Fokus', href: '../item-fokus' },
           { label: 'Actual Lap310', href: '../actual-lap310' },
           { label: 'Pembatasan Promo', href: '../pembatasan' },
         ],
@@ -70,9 +64,7 @@ const NAV_ITEMS = [
         header: 'Member',
         items: [
           { label: 'Master Member', href: '../Master-Member' },
-          { label: 'Cek Data Member', href: '../cek_data_member' },
           { label: 'Belum Aktivasi Kartu', href: '../belum-aktivasi-kartu' },
-          { label: 'History Transaksi Member', href: '../transaksimember/menu.php' },
           { label: 'MM Koordinat', href: '../mm-koordinat' },
           { label: 'Poin Member', href: '../poin' },
         ],
@@ -83,15 +75,6 @@ const NAV_ITEMS = [
           { label: 'History Gift', href: '../history-gift-ms' },
           { label: 'Monitoring Gift', href: '../monitoring_gift' },
           { label: 'Monitoring Hadiah', href: '../hdh' },
-        ],
-      },
-      {
-        header: 'Problem',
-        items: [
-          { label: 'Barcode Double', href: '../barcode-double' },
-          { label: 'Master Lokasi Belum Ada', href: '../informasi-produk/report.php?lokasiTidakAda=on' },
-          { label: 'Master Lokasi Double', href: '../master-lokasi-double' },
-          { label: 'Lokasi Rak Qty Minus', href: '../lokasi-qty-minus' },
         ],
       },
       {
@@ -108,8 +91,6 @@ const NAV_ITEMS = [
       {
         header: 'Information',
         items: [
-          { label: 'Kode PLU Timbangan', href: '../Plu-timbangan' },
-          { label: 'Master Lokasi', href: '../Master-Lokasi' },
           { label: 'Item Non Promo', href: '../plu-non-promo' },
         ],
       },
@@ -123,13 +104,14 @@ const NAV_ITEMS = [
       {
         header: 'LPP',
         items: [
-          { label: 'Informasi Produk', href: '../informasi-produk' },
+          { label: 'Informasi Produk', href: '/informasi-produk' },
           { label: 'Informasi Produk All', href: '../Informas-produk-all' },
           { label: 'Stock All', href: '../stock-all-v2' },
           { label: 'LPP vs Plano', href: '../lpp vs plano2' },
           { label: 'LPP Saat Ini', href: '../lpp-saat-ini' },
           { label: 'Plano > LPP', href: '../Ljm-Plano-besar' },
           { label: 'LPP Bulan Lalu', href: '../lpp-bulan-lalu' },
+          { label: 'Master Lokasi', href: '../Master-Lokasi' },
         ],
       },
       {
@@ -327,8 +309,8 @@ function NavFlyout({ item, isOpen, onToggle }) {
               <ul className="space-y-1">
                 {section.items.map((link) => (
                   <li key={link.label}>
-                    <a
-                      href={link.href}
+                    <Link
+                      to={link.href}
                       target={link.external ? '_blank' : undefined}
                       rel={link.external ? 'noopener noreferrer' : undefined}
                       className="
@@ -346,7 +328,7 @@ function NavFlyout({ item, isOpen, onToggle }) {
                           className="flex-shrink-0 ml-2 opacity-0 group-hover/link:opacity-50 transition-opacity"
                         />
                       )}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -414,9 +396,9 @@ export default function Sidebar() {
             Quick Access
           </p>
           {QUICK_LINKS.map(({ label, href, icon: LinkIcon }) => (
-            <a
+            <Link
               key={label}
-              href={href}
+              to={href}
               className="
                 flex items-center gap-3 px-4 py-3
                 text-[15px] font-medium text-slate-700
@@ -426,7 +408,7 @@ export default function Sidebar() {
             >
               <LinkIcon size={20} className="text-slate-400" />
               {label}
-            </a>
+            </Link>
           ))}
         </div>
       </nav>

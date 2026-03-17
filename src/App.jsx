@@ -4,7 +4,9 @@
  * Root component. DashboardLayout membungkus seluruh konten halaman.
  */
 
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import DashboardLayout from './components/layout/DashboardLayout';
+import ProductInfo from './pages/productInfo';
 
 // ─── Data dummy untuk preview tabel ──────────────────────────────────────────
 
@@ -45,18 +47,18 @@ function PreviewTable() {
           { label: 'Item Stock Active',    value: '1.842 SKU',   delta: '+3%',   up: true  },
           { label: 'Service Level',        value: '97.4%',       delta: '-0.6%', up: false },
         ].map((card) => (
-          <div
-            key={card.label}
-            className="bg-white border border-gray-200 rounded-xl p-5"
-          >
-            <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-              {card.label}
-            </p>
-            <p className="text-2xl font-bold text-slate-800 mt-1.5">{card.value}</p>
-            <p className={`text-xs mt-1.5 font-semibold ${card.up ? 'text-emerald-600' : 'text-red-600'}`}>
-              {card.delta} vs kemarin
-            </p>
-          </div>
+           <div
+             key={card.label}
+             className="bg-white border border-gray-200 rounded-xl p-5"
+           >
+             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+               {card.label}
+             </p>
+             <p className="text-2xl font-bold text-slate-800 mt-1.5">{card.value}</p>
+             <p className={`text-xs mt-1.5 font-semibold ${card.up ? 'text-emerald-600' : 'text-red-600'}`}>
+               {card.delta} vs kemarin
+             </p>
+           </div>
         ))}
       </div>
 
@@ -114,8 +116,14 @@ function PreviewTable() {
 
 export default function App() {
   return (
-    <DashboardLayout>
-      <PreviewTable />
-    </DashboardLayout>
+    <BrowserRouter>
+      <DashboardLayout>
+        <Routes>
+          <Route path="/" element={<PreviewTable />} />
+          <Route path="/informasi-produk" element={<ProductInfo />} />
+        </Routes>
+      </DashboardLayout>
+    </BrowserRouter>
   );
 }
+
