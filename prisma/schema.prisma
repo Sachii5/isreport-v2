@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  engineType = "library"
 }
 
 datasource db {
@@ -8733,7 +8732,7 @@ model refund_klikigr {
 model remus_tbmaster_prodmast {
   prd_kodeigr             String    @db.VarChar(2)
   prd_recordid            String?   @db.Char(1)
-  prd_prdcd               String    @db.VarChar(7)
+  prd_prdcd               String    @db.VarChar(7) @id
   prd_plumcg              String?   @db.VarChar(8)
   prd_plusupplier         String?   @db.VarChar(10)
   prd_tgldaftar           DateTime? @db.Timestamp(0)
@@ -18072,7 +18071,7 @@ model tbmaster_barangrusak {
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model tbmaster_barcode {
-  brc_prdcd         String?   @db.VarChar(7)
+  brc_prdcd         String?   @db.VarChar(7) @id
   brc_barcode       String?   @db.VarChar(15)
   brc_status        String?   @db.Char(2)
   brc_create_by     String?   @db.VarChar(3)
