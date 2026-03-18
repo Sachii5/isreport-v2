@@ -1,12 +1,24 @@
-import React from 'react';
+import React, { memo } from "react";
 
-export default function UniversalTable({ columns, data, isLoading }) {
+const UniversalTable = memo(function UniversalTable({
+  columns,
+  data,
+  isLoading,
+}) {
   if (isLoading) {
-    return <div className="p-4 text-center text-slate-500 animate-pulse">Menarik data dari database...</div>;
+    return (
+      <div className="p-4 text-center text-slate-500 animate-pulse">
+        Menarik data dari database...
+      </div>
+    );
   }
 
   if (!data || data.length === 0) {
-    return <div className="p-4 text-center text-red-500 font-medium bg-red-50 rounded-md">Data tidak ditemukan.</div>;
+    return (
+      <div className="p-4 text-center text-red-500 font-medium bg-red-50 rounded-md">
+        Data tidak ditemukan.
+      </div>
+    );
   }
 
   return (
@@ -15,7 +27,10 @@ export default function UniversalTable({ columns, data, isLoading }) {
         <thead>
           <tr className="bg-slate-50 border-b border-gray-200 text-slate-800 text-sm font-semibold uppercase">
             {columns.map((col, idx) => (
-              <th key={idx} className="p-3 border-r border-gray-200 last:border-r-0">
+              <th
+                key={idx}
+                className="p-3 border-r border-gray-200 last:border-r-0"
+              >
                 {col.header}
               </th>
             ))}
@@ -23,9 +38,15 @@ export default function UniversalTable({ columns, data, isLoading }) {
         </thead>
         <tbody>
           {data.map((row, rowIndex) => (
-            <tr key={rowIndex} className="border-b border-gray-100 hover:bg-slate-50 transition-colors">
+            <tr
+              key={rowIndex}
+              className="border-b border-gray-100 hover:bg-slate-50 transition-colors"
+            >
               {columns.map((col, colIndex) => (
-                <td key={colIndex} className="p-3 text-sm text-slate-700 border-r border-gray-100 last:border-r-0">
+                <td
+                  key={colIndex}
+                  className="p-3 text-sm text-slate-700 border-r border-gray-100 last:border-r-0"
+                >
                   {row[col.accessor]}
                 </td>
               ))}
@@ -35,4 +56,6 @@ export default function UniversalTable({ columns, data, isLoading }) {
       </table>
     </div>
   );
-}
+});
+
+export default UniversalTable;
