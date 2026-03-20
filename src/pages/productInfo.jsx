@@ -50,13 +50,77 @@ const MONTHS_NAME = [
   { name: "Des", num: "12" },
 ];
 
-export default function ProductInfo() {
-  const [plu, setPlu] = useState("");
+const useProductSearch = () => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [activeTab, setActiveTab] = useState("ringkasan");
   const [error, setError] = useState("");
+  const abortControllerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  const searchProduct = useCallback(async (pluCode) => {
+    if (!pluCode || loading) return null;
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    setLoading(true);
+    setHasSearched(true);
+    setError("");
+    setProduct(null);
+
+    try {
+      const response = await fetch(
+        `http://localhost:3000/api/products/${encodeURIComponent(pluCode)}`,
+        {
+          signal: abortControllerRef.current.signal,
+          headers: { Accept: "application/json" },
+        }
+      );
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error((data && data.message) || `Server Error (${response.status})`);
+      }
+
+      if (!data) throw new Error("Format respons tidak valid dari server.");
+
+      setProduct(data);
+      return data;
+    } catch (err) {
+      if (err.name === "AbortError") {
+        return null;
+      }
+      if (err.message.includes("Failed to fetch")) {
+        setError("Koneksi ke server gagal. Pastikan API sedang berjalan atau cek koneksi internet Anda.");
+      } else {
+        setError(err.message);
+      }
+      return null;
+    } finally {
+      if (!abortControllerRef.current?.signal.aborted) {
+        setLoading(false);
+      }
+    }
+  }, [loading]);
+
+  return { product, loading, error, hasSearched, searchProduct };
+};
+
+export default function ProductInfo() {
+  const [plu, setPlu] = useState("");
+  const { product, loading, error, hasSearched, searchProduct } = useProductSearch();
+  const [activeTab, setActiveTab] = useState("ringkasan");
 
   // State for Modals
   const [activeModal, setActiveModal] = useState(null); // 'rak', 'penerimaan', 'penjualan', or null
@@ -75,17 +139,6 @@ export default function ProductInfo() {
   const [promoData, setPromoData] = useState(null);
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoLoaded, setPromoLoaded] = useState(false);
-
-  const abortControllerRef = useRef(null);
-
-  // Cleanup abort controller on unmount
-  useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, []);
 
   // Close modal on ESC key
   useEffect(() => {
@@ -188,66 +241,56 @@ export default function ProductInfo() {
     }
   }, []);
 
-  const handleSearch = async (e) => {
+  const handleSearch = useCallback(async (e) => {
     e.preventDefault();
     if (!plu.trim() || loading) return;
 
-    // Batalkan request sebelumnya jika user spam klik secara cepat
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-
-    setLoading(true);
-    setHasSearched(true);
-    setError("");
-    setProduct(null);
     setActiveTab("ringkasan");
     setPromoData(null);
     setPromoLoaded(false);
     setCashbackBMS1([]);
 
-    try {
-      const response = await fetch(
-        `http://localhost:3000/api/products/${encodeURIComponent(plu.trim())}`,
-        {
-          signal: abortControllerRef.current.signal,
-          headers: {
-            Accept: "application/json",
-          },
-        },
-      );
+    await searchProduct(plu.trim());
+    fetchCashbackBMS1(plu.trim());
+  }, [plu, loading, searchProduct, fetchCashbackBMS1]);
 
-      const data = await response.json().catch(() => null);
+  // Memoized columns for UniversalTable to prevent re-renders
+  const hjkColumns = useMemo(() => [
+    { header: "PLU", accessor: "hgk_prdcd" },
+    { header: "Harga Khusus", accessor: "hgk_hrgjual" },
+    { header: "Tgl Mulai", accessor: "hgk_tglawal" },
+    { header: "Tgl Selesai", accessor: "hgk_tglakhir" },
+  ], []);
 
-      if (!response.ok) {
-        throw new Error(
-          (data && data.message) || `Server Error (${response.status})`,
-        );
-      }
+  const pembatasanColumns = useMemo(() => [
+    { header: "Ket", accessor: "ket" },
+    { header: "Satuan", accessor: "satuan" },
+    { header: "Biru", accessor: "br" },
+    { header: "Biru+", accessor: "bp" },
+    { header: "Retailer", accessor: "ret" },
+    { header: "Platinum", accessor: "pla" },
+  ], []);
 
-      if (!data) throw new Error("Format respons tidak valid dari server.");
+  const rakColumns = useMemo(() => [
+    { header: "Kode Rak", accessor: "lks_koderak" },
+    { header: "Sub Rak", accessor: "lks_kodesubrak" },
+    { header: "Tipe", accessor: "lks_tiperak" },
+    { header: "Shelving", accessor: "lks_shelvingrak" },
+    { header: "Urutan", accessor: "lks_nourut" },
+    { header: "Qty Limit", accessor: "lks_qty" },
+    { header: "Exp. Date", accessor: "lks_expdate" },
+  ], []);
 
-      setProduct(data);
-    } catch (err) {
-      if (err.name === "AbortError") {
-        console.log("Request dibatalkan");
-        return;
-      }
-      // Graceful error handling saat koneksi terputus atau API offline
-      if (err.message.includes("Failed to fetch")) {
-        setError(
-          "Koneksi ke server gagal. Pastikan API sedang berjalan atau cek koneksi internet Anda.",
-        );
-      } else {
-        setError(err.message);
-      }
-    } finally {
-      if (!abortControllerRef.current?.signal.aborted) {
-        setLoading(false);
-      }
-    }
-  };
+  const penerimaanColumns = useMemo(() => [
+    { header: "Nama Supplier", accessor: "mstd_namasupplier" },
+    { header: "No. Dokumen", accessor: "mstd_nodoc" },
+    { header: "Tanggal Doc", accessor: "mstd_tgldoc" },
+    { header: "Jam", accessor: "mstd_jam" },
+    { header: "Qty Terima", accessor: "mstd_qty" },
+    { header: "Bonus 1", accessor: "mstd_qtybonus1" },
+    { header: "Bonus 2", accessor: "mstd_qtybonus2" },
+    { header: "Avg Cost / Unit", accessor: "mstd_avgcost" },
+  ], []);
 
   return (
     <div className="p-4 md:p-8 bg-[#f8fafc] min-h-screen">
@@ -367,7 +410,7 @@ export default function ProductInfo() {
                         Lokasi & Rak Penyimpanan
                       </span>
                       <span className="text-xs text-slate-400 mt-0.5">
-                        {product.locations?.length || 0} record(s) ditemukan
+                        {Array.isArray(product.locations) ? product.locations.length : 0} record(s) ditemukan
                       </span>
                     </div>
                     <Eye className="w-5 h-5 text-slate-400 group-hover:text-amber-500" />
@@ -496,6 +539,13 @@ export default function ProductInfo() {
                         </h3>
                       </div>
                       <div className="p-0">
+                        {product.salesUnits?.error ? (
+                          <div className="p-6 text-center text-red-600 bg-red-50 italic text-sm border-t border-red-100 font-medium">
+                            <AlertTriangle className="w-5 h-5 mx-auto mb-2 opacity-80" />
+                            Gagal memuat satuan jual dari server.
+                          </div>
+                        ) : Array.isArray(product.salesUnits) &&
+                          product.salesUnits.length > 0 ? (
                         <div className="overflow-x-auto">
                           <table className="min-w-full text-xs text-left text-slate-600 border-collapse">
                             <thead className="bg-slate-50 text-slate-800 border-b border-gray-200 font-semibold uppercase tracking-wider text-[10px]">
@@ -525,7 +575,7 @@ export default function ProductInfo() {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                              {product.salesUnits &&
+                              {Array.isArray(product.salesUnits) &&
                                 product.salesUnits.map((row, idx) => {
                                   const margin =
                                     row.prd_hrgjual > 0
@@ -567,9 +617,14 @@ export default function ProductInfo() {
                                     </tr>
                                   );
                                 })}
-                            </tbody>
-                          </table>
-                        </div>
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <div className="p-6 text-center text-slate-500 italic text-sm">
+                            Tidak ada data satuan jual yang tersedia.
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -581,43 +636,50 @@ export default function ProductInfo() {
                         </h3>
                       </div>
                       <div className="p-0">
-                        <div className="overflow-x-auto">
-                          <table className="min-w-full text-xs text-left text-slate-600 border-collapse">
-                            <thead className="bg-slate-50 text-slate-800 border-b border-gray-200 font-semibold uppercase tracking-wider text-[10px]">
-                              <tr>
-                                <th className="p-3 border-r border-gray-200 text-center">
-                                  Lok
-                                </th>
-                                <th className="p-3 border-r border-gray-200 text-right">
-                                  Awal
-                                </th>
-                                <th className="p-3 border-r border-gray-200 text-right">
-                                  Terima
-                                </th>
-                                <th className="p-3 border-r border-gray-200 text-right">
-                                  Keluar
-                                </th>
-                                <th className="p-3 border-r border-gray-200 text-right">
-                                  Sales
-                                </th>
-                                <th className="p-3 border-r border-gray-200 text-right">
-                                  Retur
-                                </th>
-                                <th className="p-3 border-r border-gray-200 text-right">
-                                  Adj
-                                </th>
-                                <th className="p-3 border-r border-gray-200 text-right">
-                                  Intransit
-                                </th>
-                                <th className="p-3 border-r border-gray-200 text-right">
-                                  Akhir
-                                </th>
-                                <th className="p-3 text-right">Saldo Rp</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                              {product.stock &&
-                                product.stock.map((row, idx) => (
+                        {product.stock?.error ? (
+                          <div className="p-6 text-center text-red-600 bg-red-50 italic text-sm border-t border-red-100 font-medium">
+                            <AlertTriangle className="w-5 h-5 mx-auto mb-2 opacity-80" />
+                            Gagal memuat saldo dari server. Tabel Stok tidak
+                            dapat ditampilkan saat ini.
+                          </div>
+                        ) : Array.isArray(product.stock) &&
+                          product.stock.length > 0 ? (
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full text-xs text-left text-slate-600 border-collapse">
+                              <thead className="bg-slate-50 text-slate-800 border-b border-gray-200 font-semibold uppercase tracking-wider text-[10px]">
+                                <tr>
+                                  <th className="p-3 border-r border-gray-200 text-center">
+                                    Lok
+                                  </th>
+                                  <th className="p-3 border-r border-gray-200 text-right">
+                                    Awal
+                                  </th>
+                                  <th className="p-3 border-r border-gray-200 text-right">
+                                    Terima
+                                  </th>
+                                  <th className="p-3 border-r border-gray-200 text-right">
+                                    Keluar
+                                  </th>
+                                  <th className="p-3 border-r border-gray-200 text-right">
+                                    Sales
+                                  </th>
+                                  <th className="p-3 border-r border-gray-200 text-right">
+                                    Retur
+                                  </th>
+                                  <th className="p-3 border-r border-gray-200 text-right">
+                                    Adj
+                                  </th>
+                                  <th className="p-3 border-r border-gray-200 text-right">
+                                    Intransit
+                                  </th>
+                                  <th className="p-3 border-r border-gray-200 text-right">
+                                    Akhir
+                                  </th>
+                                  <th className="p-3 text-right">Saldo Rp</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-100">
+                                {product.stock.map((row, idx) => (
                                   <tr
                                     key={idx}
                                     className="hover:bg-slate-50 transition-colors"
@@ -656,9 +718,14 @@ export default function ProductInfo() {
                                     </td>
                                   </tr>
                                 ))}
-                            </tbody>
-                          </table>
-                        </div>
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <div className="p-6 text-center text-slate-500 italic text-sm">
+                            Tidak ada data stok yang tersedia.
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -668,13 +735,6 @@ export default function ProductInfo() {
                         <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
                           Harga Netto
                         </h3>
-                        <button
-                          onClick={() => fetchCashbackBMS1(plu.trim())}
-                          disabled={cashbackBMS1Loading}
-                          className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
-                        >
-                          {cashbackBMS1Loading ? "Memuat..." : "Lihat Data"}
-                        </button>
                       </div>
                       <div className="p-0">
                         {cashbackBMS1Loading ? (
@@ -783,8 +843,7 @@ export default function ProductInfo() {
                           </div>
                         ) : (
                           <div className="p-6 text-center text-slate-500 italic text-sm">
-                            Klik 'Lihat Data' untuk menampilkan harga netto per
-                            member type
+                            Tidak ada data harga netto.
                           </div>
                         )}
                       </div>
@@ -1187,23 +1246,9 @@ export default function ProductInfo() {
                           </h3>
                         </div>
                         <div className="p-0">
-                          {promoData?.hjk && promoData.hjk.length > 0 ? (
+                          {Array.isArray(promoData?.hjk) && promoData.hjk.length > 0 ? (
                             <UniversalTable
-                              columns={[
-                                { header: "PLU", accessor: "hgk_prdcd" },
-                                {
-                                  header: "Harga Khusus",
-                                  accessor: "hgk_hrgjual",
-                                },
-                                {
-                                  header: "Tgl Mulai",
-                                  accessor: "hgk_tglawal",
-                                },
-                                {
-                                  header: "Tgl Selesai",
-                                  accessor: "hgk_tglakhir",
-                                },
-                              ]}
+                              columns={hjkColumns}
                               data={promoData.hjk}
                             />
                           ) : (
@@ -1229,7 +1274,7 @@ export default function ProductInfo() {
                       </h3>
                     </div>
                     <div className="p-0">
-                      {product.trendSales && product.trendSales.length > 0 ? (
+                      {Array.isArray(product.trendSales) && product.trendSales.length > 0 ? (
                         <div className="overflow-x-auto">
                           <table className="min-w-full text-xs text-left text-slate-600 border-collapse">
                             <thead className="bg-slate-50 text-slate-800 border-b border-gray-200 font-semibold uppercase tracking-wider text-[10px]">
@@ -1338,16 +1383,9 @@ export default function ProductInfo() {
                       </h3>
                     </div>
                     <div className="p-0 text-xs text-nowrap truncate overflow-x-auto">
-                      {product.pembatasan && product.pembatasan.length > 0 ? (
+                      {Array.isArray(product.pembatasan) && product.pembatasan.length > 0 ? (
                         <UniversalTable
-                          columns={[
-                            { header: "Ket", accessor: "ket" },
-                            { header: "Satuan", accessor: "satuan" },
-                            { header: "Biru", accessor: "br" },
-                            { header: "Biru+", accessor: "bp" },
-                            { header: "Retailer", accessor: "ret" },
-                            { header: "Platinum", accessor: "pla" },
-                          ]}
+                          columns={pembatasanColumns}
                           data={product.pembatasan}
                         />
                       ) : (
@@ -1392,39 +1430,26 @@ export default function ProductInfo() {
               {/* --- CONTENT: RAK --- */}
               {activeModal === "rak" && (
                 <div className="p-0">
-                  <UniversalTable
-                    columns={[
-                      { header: "Kode Rak", accessor: "lks_koderak" },
-                      { header: "Sub Rak", accessor: "lks_kodesubrak" },
-                      { header: "Tipe", accessor: "lks_tiperak" },
-                      { header: "Shelving", accessor: "lks_shelvingrak" },
-                      { header: "Urutan", accessor: "lks_nourut" },
-                      { header: "Qty Limit", accessor: "lks_qty" },
-                      { header: "Exp. Date", accessor: "lks_expdate" },
-                    ]}
-                    data={product.locations || []}
-                  />
+                  {product.locations?.error ? (
+                    <div className="p-6 text-center text-red-600 bg-red-50 italic text-sm font-medium">
+                      <AlertTriangle className="w-5 h-5 mx-auto mb-2 opacity-80" />
+                      Gagal memuat detail lokasi dari server.
+                    </div>
+                  ) : (
+                    <UniversalTable
+                      columns={rakColumns}
+                      data={product.locations || []}
+                    />
+                  )}
                 </div>
               )}
 
               {/* --- CONTENT: PENERIMAAN --- */}
               {activeModal === "penerimaan" && (
                 <div className="p-0 text-sm">
-                  {product.penerimaan && product.penerimaan.length > 0 ? (
+                  {Array.isArray(product.penerimaan) && product.penerimaan.length > 0 ? (
                     <UniversalTable
-                      columns={[
-                        {
-                          header: "Nama Supplier",
-                          accessor: "mstd_namasupplier",
-                        },
-                        { header: "No. Dokumen", accessor: "mstd_nodoc" },
-                        { header: "Tanggal Doc", accessor: "mstd_tgldoc" },
-                        { header: "Jam", accessor: "mstd_jam" },
-                        { header: "Qty Terima", accessor: "mstd_qty" },
-                        { header: "Bonus 1", accessor: "mstd_qtybonus1" },
-                        { header: "Bonus 2", accessor: "mstd_qtybonus2" },
-                        { header: "Avg Cost / Unit", accessor: "mstd_avgcost" },
-                      ]}
+                      columns={penerimaanColumns}
                       data={product.penerimaan}
                     />
                   ) : (
@@ -1438,7 +1463,7 @@ export default function ProductInfo() {
               {/* --- CONTENT: PENJUALAN 12 BULAN (CROSSTAB CUSTOM) --- */}
               {activeModal === "penjualan" && (
                 <div className="p-4 bg-white">
-                  {product.penjualan && product.penjualan.length > 0 ? (
+                  {Array.isArray(product.penjualan) && product.penjualan.length > 0 ? (
                     <div className="overflow-x-auto rounded-xl border border-gray-200">
                       <table className="min-w-full text-xs text-left text-slate-600 border-collapse">
                         <thead className="bg-slate-100 text-slate-800 border-b border-gray-200 font-semibold uppercase tracking-wider text-[10px]">

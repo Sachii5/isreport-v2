@@ -95,16 +95,7 @@ export const getProductDetail = async (req, res) => {
     const startTime = Date.now();
     console.log(`[PERF] Starting queries for PLU: ${plu}`);
 
-    const [
-      productData,
-      stockData,
-      locationData,
-      salesUnitData,
-      pembatasanData,
-      penjualanData,
-      penerimaanData,
-      trendSalesData,
-    ] = await Promise.all([
+    const results = await Promise.allSettled([
       // Main Product Information
       prisma.$queryRaw`
         SELECT 
@@ -254,26 +245,37 @@ export const getProductDetail = async (req, res) => {
     const queryTime = Date.now() - startTime;
     console.log(`[PERF] All queries completed in ${queryTime}ms`);
 
+    const productResult = results[0];
     // 4. Handle Product Not Found
-    if (!productData || productData.length === 0) {
+    if (productResult.status === "rejected" || !productResult.value || productResult.value.length === 0) {
       return res.status(404).json({ message: "Product data not found!" });
     }
 
+    const extractData = (res) => {
+      if (res.status === 'fulfilled') {
+        return serializeBigInt(res.value) || [];
+      }
+      return { error: true, data: [] };
+    };
+
     // 5. Send combined and serialized data to the client
     const result = {
-      product: serializeBigInt(productData[0]),
-      stock: serializeBigInt(stockData) || [],
-      locations: serializeBigInt(locationData) || [],
-      salesUnits: serializeBigInt(salesUnitData) || [],
-      pembatasan: serializeBigInt(pembatasanData) || [],
-      penjualan: serializeBigInt(penjualanData) || [],
-      penerimaan: serializeBigInt(penerimaanData) || [],
-      trendSales: serializeBigInt(trendSalesData) || [],
+      product: serializeBigInt(productResult.value[0]),
+      stock: extractData(results[1]),
+      locations: extractData(results[2]),
+      salesUnits: extractData(results[3]),
+      pembatasan: extractData(results[4]),
+      penjualan: extractData(results[5]),
+      penerimaan: extractData(results[6]),
+      trendSales: extractData(results[7]),
     };
+
+    const hasError = results.some((r, i) => i !== 0 && r.status === 'rejected');
+    const statusCode = hasError ? 206 : 200;
 
     // Cache the result
     setCache(cacheKey, result);
-    res.json(result);
+    res.status(statusCode).json(result);
   } catch (error) {
     // Prevent sensitive error leakage to the client
     console.error("Database Query Error:", error);
